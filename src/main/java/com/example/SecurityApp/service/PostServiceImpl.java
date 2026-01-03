@@ -14,11 +14,16 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Slf4j
-@Service @RequiredArgsConstructor
+@Service
 public class PostServiceImpl implements PostService{
 
     private final PostRepository postRepository;
     private final ModelMapper modelMapper;
+
+    public PostServiceImpl(PostRepository postRepository, ModelMapper modelMapper) {
+        this.postRepository = postRepository;
+        this.modelMapper = modelMapper;
+    }
 
     @Override
     public List<PostDTO> getAllPosts() {
