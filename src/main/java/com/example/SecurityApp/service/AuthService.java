@@ -1,6 +1,7 @@
 package com.example.SecurityApp.service;
 
 import com.example.SecurityApp.dto.LoginDto;
+import com.example.SecurityApp.dto.LoginResponseDto;
 import com.example.SecurityApp.dto.SignUpDto;
 import com.example.SecurityApp.dto.UserDto;
 import com.example.SecurityApp.entites.User;
@@ -24,14 +25,15 @@ public class AuthService {
     private final ModelMapper modelMapper;
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
+    private final UserService userService;
 
 
-    public AuthService(AuthenticationManager authenticationManager, JwtService jwtService, ModelMapper modelMapper, PasswordEncoder passwordEncoder, UserRepository userRepository) {
+    public AuthService(AuthenticationManager authenticationManager, JwtService jwtService, ModelMapper modelMapper, PasswordEncoder passwordEncoder, UserRepository userRepository,UserService userService) {
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.modelMapper = modelMapper;
         this.passwordEncoder = passwordEncoder;
-
+        this.userService = userService;
         this.userRepository = userRepository;
     }
 
@@ -50,13 +52,25 @@ public class AuthService {
         return modelMapper.map(savedUser, UserDto.class);
     }
 
-    public String login(LoginDto loginDto) {
-
+    public LoginResponseDto login(LoginDto loginDto) {
+System.out.println(loginDto);
         Authentication authentication = authenticationManager.authenticate
                 (new UsernamePasswordAuthenticationToken(loginDto.getEmail(), loginDto.getPassword())
                 );
+        System.out.println(authentication);
         User user = (User) authentication.getPrincipal();
-        String token = jwtService.generateKey(user);
-        return token;
+        System.out.println(user);
+        String accesstoken = jwtService.generateAccessKey(user);
+        System.out.println(accesstoken);
+        String refreshToken = jwtService.generateRefreshKey(user);
+        System.out.println(refreshToken);
+        return new LoginResponseDto(user.getId(),accesstoken,refreshToken);
+    }
+
+    public LoginResponseDto  refreshToken(String refreshToken){
+        Long userId = jwtService.getUserIdFromToken(refreshToken);
+        User user = userService.getUserById(userId);
+        String accessToken = jwtService.generateAccessKey(user);
+        return new LoginResponseDto(user.getId(),accessToken,refreshToken);
     }
 }

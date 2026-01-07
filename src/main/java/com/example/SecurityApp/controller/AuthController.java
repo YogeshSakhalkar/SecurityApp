@@ -1,6 +1,7 @@
 package com.example.SecurityApp.controller;
 
 import com.example.SecurityApp.dto.LoginDto;
+import com.example.SecurityApp.dto.LoginResponseDto;
 import com.example.SecurityApp.dto.SignUpDto;
 import com.example.SecurityApp.dto.UserDto;
 import com.example.SecurityApp.service.AuthService;
@@ -10,7 +11,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.web.bind.annotation.*;
+
+import java.lang.reflect.Array;
+import java.util.Arrays;
 
 @RestController
 @RequestMapping("/auth")
@@ -29,14 +34,26 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody LoginDto loginDto,
+    public ResponseEntity<LoginResponseDto> login(@RequestBody LoginDto loginDto,
                                         HttpServletRequest request, HttpServletResponse response){
-        String token = authService.login(loginDto);
+       LoginResponseDto loginResponseDto = authService.login(loginDto);
 
-        Cookie cookie = new Cookie("token",token);
+        Cookie cookie = new Cookie("refreshToken",loginResponseDto.getRefreshToken());
         cookie.setHttpOnly(true);
         response.addCookie(cookie);
 
-        return ResponseEntity.ok(token);
+        return ResponseEntity.ok(loginResponseDto);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<LoginResponseDto> refresh(HttpServletRequest request){
+        String refreshToken = Arrays.stream(request.getCookies())
+                .filter(cookie -> "refreshToken".equals(cookie.getName()))
+                .findFirst()
+                .map(Cookie::getValue)
+                .orElseThrow(()-> new AuthenticationServiceException
+                        ("RefreshTokenNotFound inside the cookies"));
+        LoginResponseDto loginResponseDto = authService.refreshToken(refreshToken);
+        return ResponseEntity.ok(loginResponseDto);
     }
 }
