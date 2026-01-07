@@ -16,24 +16,33 @@ import java.util.Set;
 public class JwtService {
 
     @Value("${jwt.secreatkey}")
-    private String jwtSecretKey;
+    private  String jwtSecretKey;
 
     private SecretKey getSecretKey(){
         return Keys.hmacShaKeyFor(jwtSecretKey.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateKey(User user){
+    public String generateAccessKey(User user){
         return Jwts.builder()
                 .setSubject(user.getPassword().toString())
                 .claim("roles", Set.of("ADMIN","USER"))
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis()+1000*60))
+                .setExpiration(new Date(System.currentTimeMillis()+1000*60*10))
                 .signWith(getSecretKey())
                 .compact();
 
     }
 
-    public Long getUserIdFromToken(String token) {
+    public String generateRefreshKey(User user){
+        return Jwts.builder()
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis()+1000L*60*60*24*30*6))
+                .signWith(getSecretKey())
+                .compact();
+
+    }
+
+    public  Long getUserIdFromToken(String token) {
         Claims claims = Jwts.parser()
                 .verifyWith(getSecretKey())
                 .build()
